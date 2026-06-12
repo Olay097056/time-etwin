@@ -1,0 +1,1033 @@
+<html lang="th"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time ETWIN — Issue Reporter</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#f0f2f5;color:#222;font-size:14px}
+
+/* Header */
+header{background:#1e3a5f;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.header-left h1{font-size:15px;font-weight:600}
+.header-left .sub{font-size:11px;opacity:0.65;margin-top:1px}
+.header-right{display:flex;gap:8px;align-items:center}
+
+/* Site switcher */
+.site-tabs{display:flex;gap:4px}
+.site-tab{padding:5px 14px;border:1px solid rgba(255,255,255,0.3);border-radius:6px;background:transparent;color:rgba(255,255,255,0.7);cursor:pointer;font-size:12px;transition:all 0.15s}
+.site-tab.active{background:#fff;color:#1e3a5f;font-weight:600;border-color:#fff}
+
+/* Toolbar */
+.toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#fff;border-bottom:1px solid #e0e0e0;flex-wrap:wrap}
+.floor-tabs{display:flex;gap:4px}
+.ftab{padding:4px 12px;border:1px solid #ccc;border-radius:5px;background:#fff;color:#555;cursor:pointer;font-size:12px;transition:all 0.15s}
+.ftab.active{background:#1e3a5f;color:#fff;border-color:#1e3a5f}
+.spacer{flex:1}
+.tool-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;border:1px solid #ccc;background:#fff;color:#444;white-space:nowrap;transition:all 0.15s}
+.tool-btn:hover{background:#f5f5f5}
+.tool-btn.calib-on{background:#b45309;color:#fff;border-color:#b45309}
+.tool-btn.sheet-btn{background:#0f9d58;color:#fff;border-color:#0f9d58}
+.tool-btn.sheet-btn:hover{background:#0b8a4f}
+.url-group{display:flex;gap:4px;align-items:center}
+.url-input{width:220px;padding:5px 8px;border:1px solid #ccc;border-radius:5px;font-size:11px}
+.apply-btn{padding:5px 10px;border:1px solid #1e3a5f;border-radius:5px;background:#1e3a5f;color:#fff;cursor:pointer;font-size:11px}
+
+/* Calib bar */
+.calib-bar{background:#fef3c7;border-bottom:1px solid #f59e0b;padding:6px 14px;font-size:12px;color:#92400e;display:none}
+.calib-bar.show{display:flex;align-items:center;gap:8px}
+
+/* Map */
+.map-wrap{position:relative;overflow:hidden;background:#555;user-select:none}
+.map-wrap img{display:block;width:100%;min-height:380px;object-fit:contain;background:#888}
+.dots-layer{position:absolute;inset:0;pointer-events:none}
+.dot{position:absolute;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,0.8);pointer-events:all;transition:transform 0.12s;cursor:pointer}
+.dot:hover{transform:translate(-50%,-50%) scale(1.25)}
+.dot.dragging{transform:translate(-50%,-50%) scale(1.3);z-index:50;cursor:grabbing}
+.dot.attendance{background:#1e5fa5}
+.dot.restroom{background:#b45309}
+.dot.lunch{background:#166534}
+.dot.has-issue::after{content:'';position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#ef4444;border-radius:50%;border:1px solid #fff}
+/* Tooltip */
+.dot-tooltip{position:absolute;background:rgba(0,0,0,0.82);color:#fff;padding:5px 9px;border-radius:5px;font-size:11px;white-space:nowrap;pointer-events:none;z-index:100;display:none;transform:translate(-50%,-100%);margin-top:-6px;line-height:1.5}
+
+/* Legend */
+.legend{display:flex;align-items:center;gap:14px;padding:6px 14px;background:#fff;border-top:1px solid #e0e0e0;font-size:11px;color:#666;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:4px}
+.leg-dot{width:9px;height:9px;border-radius:50%}
+.coord-hint{margin-left:auto;font-size:10px;color:#aaa;font-family:monospace}
+
+/* Modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:10px;padding:20px;width:360px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+.modal-hd{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.modal-hd .title{font-size:15px;font-weight:600;flex:1}
+.badge{font-size:10px;padding:2px 8px;border-radius:4px}
+.badge.attendance{background:#dbeafe;color:#1e40af}
+.badge.restroom{background:#fef3c7;color:#92400e}
+.badge.lunch{background:#dcfce7;color:#166534}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:11px;color:#666;margin-bottom:3px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;padding:7px 9px;border:1px solid #d0d0d0;border-radius:5px;font-size:13px;font-family:sans-serif;outline:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#1e5fa5}
+.field textarea{resize:vertical;min-height:68px}
+.modal-foot{display:flex;gap:8px;margin-top:14px}
+.btn-cancel{flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#555;cursor:pointer;font-size:13px}
+.btn-save{flex:2;padding:8px;border:none;border-radius:6px;background:#1e3a5f;color:#fff;cursor:pointer;font-size:13px;font-weight:500}
+.btn-save:disabled{opacity:0.5;cursor:default}
+
+/* Calib dot modal */
+.sm-modal{background:#fff;border-radius:10px;padding:18px;width:310px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+.sm-modal h3{font-size:14px;font-weight:600;margin-bottom:12px}
+.sm-modal label{display:block;font-size:11px;color:#666;margin-bottom:3px;font-weight:500}
+.sm-modal input,.sm-modal select{width:100%;padding:7px 9px;border:1px solid #d0d0d0;border-radius:5px;font-size:13px;margin-bottom:10px}
+.sm-modal .row{display:flex;gap:8px;margin-top:4px}
+
+/* Settings modal */
+.settings-modal{background:#fff;border-radius:10px;padding:20px;width:400px;max-width:95vw}
+.settings-modal h3{font-size:14px;font-weight:600;margin-bottom:14px}
+.settings-section{margin-bottom:14px}
+.settings-section label{display:block;font-size:11px;color:#666;font-weight:500;margin-bottom:4px}
+.settings-section input{width:100%;padding:7px 9px;border:1px solid #d0d0d0;border-radius:5px;font-size:12px}
+
+/* Export box */
+.export-box{margin:8px 12px;background:#f0fdf4;border:1px solid #86efac;border-radius:7px;padding:10px;display:none}
+.export-box textarea{width:100%;height:100px;font-size:11px;font-family:monospace;border:1px solid #ccc;border-radius:4px;padding:6px;resize:none}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e3a5f;color:#fff;padding:10px 20px;border-radius:7px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.25s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>⏱ Time ETWIN — Issue Reporter</h1>
+    <div class="sub">Belton Industrial (Thailand) Ltd</div>
+  </div>
+  <div class="header-right">
+    <div class="site-tabs">
+      <button class="site-tab" onclick="switchSite('navanakorn')">🏭 BIT นวนคร</button>
+      <button class="site-tab active" onclick="switchSite('rojana')">🏭 BIT โรจนะ</button>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="floor-tabs" id="floorTabs"><button class="ftab active">BITR</button></div>
+  <div class="spacer"></div>
+  <button class="tool-btn sheet-btn" id="sheetBtn" onclick="openSheet()">📊 เปิด Google Sheet</button>
+  <button class="tool-btn" onclick="openSettings()">⚙ ตั้งค่า URL</button>
+  <button class="tool-btn calib-on" id="calibBtn" onclick="toggleCalib()">✏ ปิด Calibrate</button>
+  <button class="tool-btn" onclick="exportConfig()" style="font-size:11px">💾 Export</button>
+</div>
+
+<div class="calib-bar show" id="calibBar">
+  ✏ <strong>Calibrate Mode</strong> — คลิกบนรูปเพื่อเพิ่ม dot | <strong>ลาก dot</strong> เพื่อย้ายตำแหน่ง | คลิกขวา dot เพื่อลบ
+  <span id="coordHint" class="coord-hint">x77.7% y74.15%</span>
+</div>
+
+<div class="map-wrap" id="mapWrap">
+  <img id="floorImg" src="https://drive.google.com/thumbnail?id=1yqhzOiWwwe26z9Y3l2qUBvI0Qv4mTQfP&amp;sz=w2000" alt="Floor Plan" draggable="false">
+  <div class="dots-layer" id="dotsLayer"><div class="dot attendance" data-id="No43" style="left: 12.7%; top: 16.33%;">43</div><div class="dot attendance" data-id="No38" style="left: 6.38%; top: 27.01%;">38</div><div class="dot attendance has-issue" data-id="No40" style="left: 6.22%; top: 31.28%;">40</div><div class="dot attendance" data-id="No35" style="left: 14.87%; top: 67.93%;">35</div><div class="dot attendance" data-id="No34" style="left: 35.74%; top: 67.38%;">34</div><div class="dot attendance" data-id="No37" style="left: 7.49%; top: 73.78%;">37</div><div class="dot attendance" data-id="No36" style="left: 38.17%; top: 73.97%;">36</div><div class="dot attendance" data-id="No42" style="left: 47.44%; top: 72.67%;">42</div><div class="dot attendance" data-id="No33" style="left: 55.03%; top: 65.89%;">33</div><div class="dot attendance" data-id="No44" style="left: 77.7%; top: 74.15%;">44</div></div>
+  <div class="dot-tooltip" id="dotTooltip" style="left: 35.74%; top: 67.38%; display: none;"><b>No34</b> · ✅ ปกติ</div>
+</div>
+
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#1e5fa5"></div>Time Attendance</div>
+  <div class="leg"><div class="leg-dot" style="background:#b45309"></div>Restroom</div>
+  <div class="leg"><div class="leg-dot" style="background:#166534"></div>Lunch Time</div>
+  <div class="leg"><div style="width:9px;height:9px;border-radius:50%;background:#ef4444;border:1px solid #fff;box-shadow:0 0 0 1px #ef4444"></div>มี Open Issue</div>
+</div>
+
+
+
+<!-- Issue Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="title" id="mTitle">รายงานปัญหา</div>
+      <span class="badge" id="mBadge"></span>
+    </div>
+    <div class="field">
+      <label>EN / ชื่อผู้แจ้ง *</label>
+      <input type="text" id="fUser" placeholder="เช่น EN001 หรือ ชื่อ-สกุล">
+    </div>
+    <div class="field">
+      <label>วันที่-เวลาที่มีปัญหา *</label>
+      <input type="datetime-local" id="fDate">
+    </div>
+    <div class="field">
+      <label>ประเภทปัญหา</label>
+      <select id="fType">
+        <option value="">-- เลือกประเภท --</option>
+        <option>Card Read Error</option>
+        <option>Network / Connection</option>
+        <option>Display / Screen</option>
+        <option>Power Issue</option>
+        <option>Button / Keypad</option>
+        <option>อื่นๆ</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>รายละเอียดปัญหา *</label>
+      <textarea id="fDesc" placeholder="อธิบายอาการที่พบ..."></textarea>
+    </div>
+    <div class="field">
+      <label>สถานะหลังแจ้ง</label>
+      <select id="fStatus">
+        <option value="open">🔴 Open — รอดำเนินการ</option>
+        <option value="inprogress">🟡 In Progress — กำลังแก้ไข</option>
+        <option value="resolved">🟢 Resolved — แก้ไขแล้ว</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-save" id="btnSave" onclick="submitForm()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Calibrate add dot modal -->
+<div class="overlay" id="calibOverlay">
+  <div class="sm-modal">
+    <h3>➕ เพิ่มเครื่องใหม่</h3>
+    <label>Machine ID (เช่น No09, T01, GH1)</label>
+    <input type="text" id="cId" placeholder="No09">
+    <label>ประเภท</label>
+    <select id="cType">
+      <option value="attendance">Time Attendance</option>
+      <option value="restroom">Restroom</option>
+      <option value="lunch">Lunch Time</option>
+    </select>
+    <label>Label บน dot (1-4 ตัว)</label>
+    <input type="text" id="cLabel" placeholder="09" maxlength="4">
+    <div class="row">
+      <button onclick="closeCalibForm()" style="flex:1;padding:7px;border:1px solid #ccc;border-radius:5px;cursor:pointer;background:#fff">ยกเลิก</button>
+      <button onclick="saveCalibDot()" style="flex:2;padding:7px;border:none;border-radius:5px;background:#b45309;color:#fff;cursor:pointer;font-weight:500">เพิ่ม</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="overlay" id="settingsOverlay">
+  <div class="settings-modal">
+    <h3>⚙ ตั้งค่า URL</h3>
+    <div id="settingsContent"><div style="border: 1px solid rgb(191, 219, 254); border-radius: 8px; padding: 12px; margin-bottom: 14px; background: rgb(239, 246, 255);">
+    <div style="font-size:13px;font-weight:600;color:#1e3a5f;margin-bottom:8px">🔌 Google Apps Script URL</div>
+    <div style="font-size:11px;color:#555;margin-bottom:6px">URL ที่ได้จากการ Deploy Web App ใน Google Apps Script</div>
+    <input type="text" id="gas_url_input" value="https://script.google.com/macros/s/AKfycbzS2uMUtqe9P3jzM4hMJwMft5L5YfJ7IEgWgwxfcSME2G2FnZT3tePF4HWizGE9QAqZ/exec" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;padding:7px 9px;border:1px solid #93c5fd;border-radius:5px;font-size:12px">
+    <div style="font-size:10px;color:#3b82f6;margin-top:4px">💡 กด บันทึก แล้ว Export ไฟล์ใหม่ → URL จะฝังอยู่ในไฟล์ถาวร</div>
+  </div><div style="border: 1px solid rgb(224, 224, 224); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+      <div style="font-size:13px;font-weight:600;color:#1e3a5f;margin-bottom:10px">🏭 BIT นวนคร</div>
+      <div class="settings-section">
+        <label>🔗 Google Sheet URL</label>
+        <input type="text" id="sheet_navanakorn" value="https://docs.google.com/spreadsheets/d/1m0rmEBChQt01ysZgUxa3zX5IQVtV8p2XelYvfT048L4/edit?gid=0#gid=0" placeholder="https://docs.google.com/spreadsheets/d/...">
+      </div>
+      <div style="font-size:12px;font-weight:500;color:#555;margin:10px 0 6px">📐 Floors</div>
+      <div id="floors_navanakorn"><div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; background: rgb(249, 249, 249); padding: 6px 8px; border-radius: 6px; border: 1px solid rgb(238, 238, 238); flex-wrap: wrap;">
+      <div style="font-size:10px;font-weight:600;color:#888;min-width:44px">#1</div>
+      <input type="text" id="name_navanakorn_1" value="1st Floor" placeholder="ชื่อ Floor" style="width:110px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <input type="text" id="img_navanakorn_1" value="https://drive.google.com/file/d/1Sze9iLQNdA_d755ujuL0J7qEvUYtFJG5/view?usp=drive_link" placeholder="Google Drive URL รูป floor" style="flex:1;min-width:120px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <div style="font-size:10px;color:#888;white-space:nowrap">16 เครื่อง</div>
+      <button onclick="confirmDeleteFloor('navanakorn', 1)" style="padding:3px 8px;border:1px solid #fca5a5;border-radius:4px;background:#fff;color:#ef4444;cursor:pointer;font-size:11px" title="ลบ Floor 1">✕</button>
+    </div><div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; background: rgb(249, 249, 249); padding: 6px 8px; border-radius: 6px; border: 1px solid rgb(238, 238, 238); flex-wrap: wrap;">
+      <div style="font-size:10px;font-weight:600;color:#888;min-width:44px">#2</div>
+      <input type="text" id="name_navanakorn_2" value="2nd Floor" placeholder="ชื่อ Floor" style="width:110px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <input type="text" id="img_navanakorn_2" value="https://drive.google.com/file/d/1ix9gjL6pAnHuanFMGpHYFBu-Ud11o31-/view?usp=drive_link" placeholder="Google Drive URL รูป floor" style="flex:1;min-width:120px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <div style="font-size:10px;color:#888;white-space:nowrap">11 เครื่อง</div>
+      <button onclick="confirmDeleteFloor('navanakorn', 2)" style="padding:3px 8px;border:1px solid #fca5a5;border-radius:4px;background:#fff;color:#ef4444;cursor:pointer;font-size:11px" title="ลบ Floor 2">✕</button>
+    </div><div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; background: rgb(249, 249, 249); padding: 6px 8px; border-radius: 6px; border: 1px solid rgb(238, 238, 238); flex-wrap: wrap;">
+      <div style="font-size:10px;font-weight:600;color:#888;min-width:44px">#3</div>
+      <input type="text" id="name_navanakorn_3" value="3rd Floor" placeholder="ชื่อ Floor" style="width:110px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <input type="text" id="img_navanakorn_3" value="https://drive.google.com/file/d/1Fi-KltzqIDxsfHCdzRHadF_0VZ2KCK4M/view?usp=drive_link" placeholder="Google Drive URL รูป floor" style="flex:1;min-width:120px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <div style="font-size:10px;color:#888;white-space:nowrap">1 เครื่อง</div>
+      <button onclick="confirmDeleteFloor('navanakorn', 3)" style="padding:3px 8px;border:1px solid #fca5a5;border-radius:4px;background:#fff;color:#ef4444;cursor:pointer;font-size:11px" title="ลบ Floor 3">✕</button>
+    </div></div>
+      <button onclick="addFloor('navanakorn')" style="margin-top:8px;padding:5px 12px;border:1px dashed #1e5fa5;border-radius:5px;background:#eff6ff;color:#1e5fa5;cursor:pointer;font-size:12px;width:100%">+ เพิ่ม Floor</button>
+    </div><div style="border: 1px solid rgb(224, 224, 224); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+      <div style="font-size:13px;font-weight:600;color:#1e3a5f;margin-bottom:10px">🏭 BIT โรจนะ</div>
+      <div class="settings-section">
+        <label>🔗 Google Sheet URL</label>
+        <input type="text" id="sheet_rojana" value="https://docs.google.com/spreadsheets/d/1m0rmEBChQt01ysZgUxa3zX5IQVtV8p2XelYvfT048L4/edit?gid=0#gid=0" placeholder="https://docs.google.com/spreadsheets/d/...">
+      </div>
+      <div style="font-size:12px;font-weight:500;color:#555;margin:10px 0 6px">📐 Floors</div>
+      <div id="floors_rojana"><div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; background: rgb(249, 249, 249); padding: 6px 8px; border-radius: 6px; border: 1px solid rgb(238, 238, 238); flex-wrap: wrap;">
+      <div style="font-size:10px;font-weight:600;color:#888;min-width:44px">#1</div>
+      <input type="text" id="name_rojana_1" value="BITR" placeholder="ชื่อ Floor" style="width:110px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <input type="text" id="img_rojana_1" value="https://drive.google.com/file/d/1yqhzOiWwwe26z9Y3l2qUBvI0Qv4mTQfP/view?usp=drive_link" placeholder="Google Drive URL รูป floor" style="flex:1;min-width:120px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <div style="font-size:10px;color:#888;white-space:nowrap">10 เครื่อง</div>
+      <button onclick="confirmDeleteFloor('rojana', 1)" style="padding:3px 8px;border:1px solid #fca5a5;border-radius:4px;background:#fff;color:#ef4444;cursor:pointer;font-size:11px" title="ลบ Floor 1">✕</button>
+    </div></div>
+      <button onclick="addFloor('rojana')" style="margin-top:8px;padding:5px 12px;border:1px dashed #1e5fa5;border-radius:5px;background:#eff6ff;color:#1e5fa5;cursor:pointer;font-size:12px;width:100%">+ เพิ่ม Floor</button>
+    </div></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button onclick="closeSettings()" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;font-size:13px">ปิด</button>
+      <button onclick="saveSettings()" style="flex:2;padding:8px;border:none;border-radius:6px;background:#1e3a5f;color:#fff;cursor:pointer;font-size:13px;font-weight:500">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ บันทึกการตั้งค่าแล้ว</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────
+let GAS_URL = 'https://script.google.com/macros/s/AKfycbzS2uMUtqe9P3jzM4hMJwMft5L5YfJ7IEgWgwxfcSME2G2FnZT3tePF4HWizGE9QAqZ/exec';
+
+let MACHINES_CONFIG = {
+  "navanakorn": {
+    "name": "BIT นวนคร",
+    "sheetUrl": "https://docs.google.com/spreadsheets/d/1m0rmEBChQt01ysZgUxa3zX5IQVtV8p2XelYvfT048L4/edit?gid=0#gid=0",
+    "floors": {
+      "1": {
+        "name": "1st Floor",
+        "imgUrl": "https://drive.google.com/file/d/1Sze9iLQNdA_d755ujuL0J7qEvUYtFJG5/view?usp=drive_link",
+        "machines": [
+          {
+            "id": "GH2",
+            "xPct": 9,
+            "yPct": 61,
+            "type": "lunch",
+            "label": "GH2"
+          },
+          {
+            "id": "No17",
+            "xPct": 45.12,
+            "yPct": 32.12,
+            "type": "attendance",
+            "label": "17"
+          },
+          {
+            "id": "No14",
+            "xPct": 58.46,
+            "yPct": 34.09,
+            "type": "attendance",
+            "label": "14"
+          },
+          {
+            "id": "No13",
+            "xPct": 65,
+            "yPct": 34.17,
+            "type": "attendance",
+            "label": "13"
+          },
+          {
+            "id": "No15",
+            "xPct": 65.37,
+            "yPct": 49.16,
+            "type": "attendance",
+            "label": "15"
+          },
+          {
+            "id": "No16",
+            "xPct": 58.88,
+            "yPct": 53.36,
+            "type": "attendance",
+            "label": "16"
+          },
+          {
+            "id": "No18",
+            "xPct": 56.56,
+            "yPct": 77.98,
+            "type": "attendance",
+            "label": "18"
+          },
+          {
+            "id": "No19",
+            "xPct": 63.78,
+            "yPct": 78.15,
+            "type": "attendance",
+            "label": "19"
+          },
+          {
+            "id": "No20",
+            "xPct": 67.21,
+            "yPct": 77.82,
+            "type": "attendance",
+            "label": "20"
+          },
+          {
+            "id": "No21",
+            "xPct": 70.53,
+            "yPct": 77.98,
+            "type": "attendance",
+            "label": "21"
+          },
+          {
+            "id": "No11",
+            "xPct": 76.23,
+            "yPct": 59.04,
+            "type": "attendance",
+            "label": "11"
+          },
+          {
+            "id": "No10",
+            "xPct": 76.07,
+            "yPct": 69.42,
+            "type": "attendance",
+            "label": "10"
+          },
+          {
+            "id": "No09",
+            "xPct": 82.66,
+            "yPct": 77.66,
+            "type": "attendance",
+            "label": "09"
+          },
+          {
+            "id": "No12",
+            "xPct": 82.29,
+            "yPct": 50.64,
+            "type": "attendance",
+            "label": "12"
+          },
+          {
+            "id": "GH1",
+            "xPct": 75.65,
+            "yPct": 90.01,
+            "type": "lunch",
+            "label": "GH1"
+          },
+          {
+            "id": "T05",
+            "xPct": 56.62,
+            "yPct": 75.35,
+            "type": "restroom",
+            "label": "T05"
+          }
+        ]
+      },
+      "2": {
+        "name": "2nd Floor",
+        "imgUrl": "https://drive.google.com/file/d/1ix9gjL6pAnHuanFMGpHYFBu-Ud11o31-/view?usp=drive_link",
+        "machines": [
+          {
+            "id": "No01",
+            "xPct": 24.35,
+            "yPct": 24.82,
+            "type": "attendance",
+            "label": "01"
+          },
+          {
+            "id": "No23",
+            "xPct": 56.93,
+            "yPct": 30.9,
+            "type": "attendance",
+            "label": "23"
+          },
+          {
+            "id": "No22",
+            "xPct": 60.89,
+            "yPct": 30.65,
+            "type": "attendance",
+            "label": "22"
+          },
+          {
+            "id": "No25",
+            "xPct": 67.95,
+            "yPct": 42.64,
+            "type": "attendance",
+            "label": "25"
+          },
+          {
+            "id": "No03",
+            "xPct": 67.9,
+            "yPct": 62.04,
+            "type": "attendance",
+            "label": "03"
+          },
+          {
+            "id": "No04",
+            "xPct": 50.87,
+            "yPct": 68.2,
+            "type": "attendance",
+            "label": "04"
+          },
+          {
+            "id": "No24",
+            "xPct": 65,
+            "yPct": 78.86,
+            "type": "attendance",
+            "label": "24"
+          },
+          {
+            "id": "No05",
+            "xPct": 68.85,
+            "yPct": 68.54,
+            "type": "attendance",
+            "label": "05"
+          },
+          {
+            "id": "No07",
+            "xPct": 78.97,
+            "yPct": 75.28,
+            "type": "attendance",
+            "label": "07"
+          },
+          {
+            "id": "No02",
+            "xPct": 30.05,
+            "yPct": 80.86,
+            "type": "attendance",
+            "label": "02"
+          },
+          {
+            "id": "T01",
+            "xPct": 71.16,
+            "yPct": 74.03,
+            "type": "restroom",
+            "label": "T01"
+          }
+        ]
+      },
+      "3": {
+        "name": "3rd Floor",
+        "imgUrl": "https://drive.google.com/file/d/1Fi-KltzqIDxsfHCdzRHadF_0VZ2KCK4M/view?usp=drive_link",
+        "machines": [
+          {
+            "id": "No06",
+            "xPct": 25.72,
+            "yPct": 83.53,
+            "type": "attendance",
+            "label": "06"
+          }
+        ]
+      }
+    }
+  },
+  "rojana": {
+    "name": "BIT โรจนะ",
+    "sheetUrl": "https://docs.google.com/spreadsheets/d/1m0rmEBChQt01ysZgUxa3zX5IQVtV8p2XelYvfT048L4/edit?gid=0#gid=0",
+    "floors": {
+      "1": {
+        "name": "BITR",
+        "imgUrl": "https://drive.google.com/file/d/1yqhzOiWwwe26z9Y3l2qUBvI0Qv4mTQfP/view?usp=drive_link",
+        "machines": [
+          {
+            "id": "No43",
+            "xPct": 12.7,
+            "yPct": 16.33,
+            "type": "attendance",
+            "label": "43"
+          },
+          {
+            "id": "No38",
+            "xPct": 6.38,
+            "yPct": 27.01,
+            "type": "attendance",
+            "label": "38"
+          },
+          {
+            "id": "No40",
+            "xPct": 6.22,
+            "yPct": 31.28,
+            "type": "attendance",
+            "label": "40"
+          },
+          {
+            "id": "No35",
+            "xPct": 14.87,
+            "yPct": 67.93,
+            "type": "attendance",
+            "label": "35"
+          },
+          {
+            "id": "No34",
+            "xPct": 35.74,
+            "yPct": 67.38,
+            "type": "attendance",
+            "label": "34"
+          },
+          {
+            "id": "No37",
+            "xPct": 7.49,
+            "yPct": 73.78,
+            "type": "attendance",
+            "label": "37"
+          },
+          {
+            "id": "No36",
+            "xPct": 38.17,
+            "yPct": 73.97,
+            "type": "attendance",
+            "label": "36"
+          },
+          {
+            "id": "No42",
+            "xPct": 47.44,
+            "yPct": 72.67,
+            "type": "attendance",
+            "label": "42"
+          },
+          {
+            "id": "No33",
+            "xPct": 55.03,
+            "yPct": 65.89,
+            "type": "attendance",
+            "label": "33"
+          },
+          {
+            "id": "No44",
+            "xPct": 77.7,
+            "yPct": 74.15,
+            "type": "attendance",
+            "label": "44"
+          }
+        ]
+      }
+    }
+  }
+};
+
+// ─── STATE ────────────────────────────────────────────
+let currentSite = 'navanakorn';
+let currentFloor = 1;
+let calibMode = false;
+let pendingPos = null;
+let selectedMachine = null;
+let dragState = null;
+
+// Issue status stored locally
+function getIssueStatus(siteKey, machineId) {
+  try { return JSON.parse(localStorage.getItem('issue_status') || '{}')[siteKey + '_' + machineId] || 'ok'; } catch(e) { return 'ok'; }
+}
+function setIssueStatus(siteKey, machineId, status) {
+  try {
+    const all = JSON.parse(localStorage.getItem('issue_status') || '{}');
+    all[siteKey + '_' + machineId] = status;
+    localStorage.setItem('issue_status', JSON.stringify(all));
+  } catch(e) {}
+}
+function getLastReport(siteKey, machineId) {
+  try { return JSON.parse(localStorage.getItem('last_report') || '{}')[siteKey + '_' + machineId] || null; } catch(e) { return null; }
+}
+function setLastReport(siteKey, machineId, user, date) {
+  try {
+    const all = JSON.parse(localStorage.getItem('last_report') || '{}');
+    all[siteKey + '_' + machineId] = { user, date };
+    localStorage.setItem('last_report', JSON.stringify(all));
+  } catch(e) {}
+}
+
+// ─── GOOGLE DRIVE URL ─────────────────────────────────
+function gdUrl(raw) {
+  if (!raw) return '';
+  const m = raw.match(/\/d\/([\w-]+)/);
+  if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+  const m2 = raw.match(/id=([\w-]+)/);
+  if (m2) return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w2000`;
+  return raw;
+}
+
+// ─── SITE / FLOOR ─────────────────────────────────────
+function switchSite(site) {
+  currentSite = site;
+  currentFloor = parseInt(Object.keys(MACHINES_CONFIG[site].floors)[0]);
+  document.querySelectorAll('.site-tab').forEach((t, i) => {
+    t.classList.toggle('active', ['navanakorn','rojana'][i] === site);
+  });
+  buildFloorTabs();
+  renderFloor();
+}
+
+function buildFloorTabs() {
+  const floors = MACHINES_CONFIG[currentSite].floors;
+  const container = document.getElementById('floorTabs');
+  container.innerHTML = '';
+  Object.entries(floors).forEach(([f, floorData]) => {
+    const btn = document.createElement('button');
+    btn.className = 'ftab' + (parseInt(f) === currentFloor ? ' active' : '');
+    btn.textContent = floorData.name || `Floor ${f}`;
+    btn.onclick = () => switchFloor(parseInt(f));
+    container.appendChild(btn);
+  });
+}
+
+function switchFloor(f) {
+  currentFloor = f;
+  document.querySelectorAll('.ftab').forEach((t, i) => {
+    t.classList.toggle('active', parseInt(Object.keys(MACHINES_CONFIG[currentSite].floors)[i]) === f);
+  });
+  renderFloor();
+}
+
+function renderFloor() {
+  const cfg = MACHINES_CONFIG[currentSite].floors[currentFloor];
+  document.getElementById('floorImg').src = gdUrl(cfg.imgUrl);
+  renderDots();
+}
+
+// ─── DOTS ─────────────────────────────────────────────
+function renderDots() {
+  const layer = document.getElementById('dotsLayer');
+  layer.innerHTML = '';
+  const machines = MACHINES_CONFIG[currentSite].floors[currentFloor].machines;
+  machines.forEach(m => createDot(m));
+}
+
+function createDot(m) {
+  const layer = document.getElementById('dotsLayer');
+  const dot = document.createElement('div');
+  const status = getIssueStatus(currentSite, m.id);
+  dot.className = `dot ${m.type}${status !== 'ok' && status !== 'resolved' ? ' has-issue' : ''}`;
+  dot.style.left = m.xPct + '%';
+  dot.style.top = m.yPct + '%';
+  dot.textContent = m.label;
+  dot.dataset.id = m.id;
+
+  // Tooltip
+  dot.addEventListener('mouseenter', (e) => {
+    const tip = document.getElementById('dotTooltip');
+    const last = getLastReport(currentSite, m.id);
+    const statusLabel = {ok:'✅ ปกติ', open:'🔴 Open', inprogress:'🟡 In Progress', resolved:'🟢 Resolved'}[status] || '';
+    tip.innerHTML = `<b>${m.id}</b> · ${statusLabel}` + (last ? `<br>แจ้งล่าสุด: ${last.user} · ${new Date(last.date).toLocaleDateString('th-TH')}` : '');
+    tip.style.left = m.xPct + '%';
+    tip.style.top = m.yPct + '%';
+    tip.style.display = 'block';
+  });
+  dot.addEventListener('mouseleave', () => {
+    document.getElementById('dotTooltip').style.display = 'none';
+  });
+
+  // Drag in calibrate mode
+  dot.addEventListener('pointerdown', (e) => {
+    if (!calibMode) return;
+    e.stopPropagation();
+    e.preventDefault();
+    dot.setPointerCapture(e.pointerId);
+    dot.classList.add('dragging');
+    dragState = { id: m.id, dot };
+  });
+  dot.addEventListener('pointermove', (e) => {
+    if (!dragState || dragState.id !== m.id) return;
+    const wrap = document.getElementById('mapWrap');
+    const rect = wrap.getBoundingClientRect();
+    const xPct = Math.min(100, Math.max(0, (e.clientX - rect.left) / rect.width * 100));
+    const yPct = Math.min(100, Math.max(0, (e.clientY - rect.top) / rect.height * 100));
+    dot.style.left = xPct + '%';
+    dot.style.top = yPct + '%';
+    document.getElementById('coordHint').textContent = `${m.id}: x${xPct.toFixed(1)}% y${yPct.toFixed(1)}%`;
+  });
+  dot.addEventListener('pointerup', (e) => {
+    if (!dragState || dragState.id !== m.id) return;
+    const wrap = document.getElementById('mapWrap');
+    const rect = wrap.getBoundingClientRect();
+    const xPct = parseFloat(Math.min(100, Math.max(0, (e.clientX - rect.left) / rect.width * 100)).toFixed(2));
+    const yPct = parseFloat(Math.min(100, Math.max(0, (e.clientY - rect.top) / rect.height * 100)).toFixed(2));
+    const machine = MACHINES_CONFIG[currentSite].floors[currentFloor].machines.find(x => x.id === m.id);
+    if (machine) { machine.xPct = xPct; machine.yPct = yPct; }
+    dot.classList.remove('dragging');
+    dragState = null;
+    toast(`ย้าย ${m.id} แล้ว`);
+  });
+
+  // Click: open form or remove
+  dot.addEventListener('click', (e) => {
+    if (dragState) return;
+    e.stopPropagation();
+    if (calibMode) { removeDot(m.id); return; }
+    openModal(m.id, m.type);
+  });
+  dot.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (calibMode) removeDot(m.id);
+  });
+
+  layer.appendChild(dot);
+}
+
+function removeDot(id) {
+  if (!confirm(`ลบเครื่อง ${id}?`)) return;
+  MACHINES_CONFIG[currentSite].floors[currentFloor].machines =
+    MACHINES_CONFIG[currentSite].floors[currentFloor].machines.filter(m => m.id !== id);
+  renderDots();
+}
+
+// ─── CALIBRATE ────────────────────────────────────────
+function toggleCalib() {
+  calibMode = !calibMode;
+  const btn = document.getElementById('calibBtn');
+  btn.classList.toggle('calib-on', calibMode);
+  btn.textContent = calibMode ? '✏ ปิด Calibrate' : '✏ Calibrate';
+  document.getElementById('calibBar').classList.toggle('show', calibMode);
+}
+
+document.getElementById('mapWrap').addEventListener('click', (e) => {
+  if (!calibMode || e.target !== document.getElementById('floorImg')) return;
+  const rect = e.target.getBoundingClientRect();
+  const xPct = parseFloat(((e.clientX - rect.left) / rect.width * 100).toFixed(2));
+  const yPct = parseFloat(((e.clientY - rect.top) / rect.height * 100).toFixed(2));
+  document.getElementById('coordHint').textContent = `x${xPct}% y${yPct}%`;
+  pendingPos = { xPct, yPct };
+  document.getElementById('cId').value = '';
+  document.getElementById('cLabel').value = '';
+  document.getElementById('calibOverlay').classList.add('show');
+});
+
+function closeCalibForm() {
+  document.getElementById('calibOverlay').classList.remove('show');
+  pendingPos = null;
+}
+
+function saveCalibDot() {
+  const id = document.getElementById('cId').value.trim();
+  const type = document.getElementById('cType').value;
+  const label = document.getElementById('cLabel').value.trim() || id.slice(-2);
+  if (!id) { alert('กรุณาใส่ Machine ID'); return; }
+  if (!pendingPos) return;
+  MACHINES_CONFIG[currentSite].floors[currentFloor].machines.push({ id, xPct: pendingPos.xPct, yPct: pendingPos.yPct, type, label });
+  closeCalibForm();
+  renderDots();
+  toast(`เพิ่ม ${id} แล้ว`);
+}
+
+// ─── SETTINGS + FLOOR MANAGEMENT ──────────────────────
+function openSettings() {
+  renderSettingsContent();
+  document.getElementById('settingsOverlay').classList.add('show');
+}
+
+function renderSettingsContent() {
+  const c = document.getElementById('settingsContent');
+  c.innerHTML = '';
+
+  // GAS URL section
+  const gasBlock = document.createElement('div');
+  gasBlock.style.cssText = 'border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:14px;background:#eff6ff';
+  gasBlock.innerHTML = `
+    <div style="font-size:13px;font-weight:600;color:#1e3a5f;margin-bottom:8px">🔌 Google Apps Script URL</div>
+    <div style="font-size:11px;color:#555;margin-bottom:6px">URL ที่ได้จากการ Deploy Web App ใน Google Apps Script</div>
+    <input type="text" id="gas_url_input" value="${GAS_URL === 'YOUR_APPS_SCRIPT_URL_HERE' ? '' : GAS_URL}"
+      placeholder="https://script.google.com/macros/s/.../exec"
+      style="width:100%;padding:7px 9px;border:1px solid #93c5fd;border-radius:5px;font-size:12px">
+    <div style="font-size:10px;color:#3b82f6;margin-top:4px">💡 กด บันทึก แล้ว Export ไฟล์ใหม่ → URL จะฝังอยู่ในไฟล์ถาวร</div>
+  `;
+  c.appendChild(gasBlock);
+
+  // Site blocks
+  Object.entries(MACHINES_CONFIG).forEach(([key, site]) => {
+    // Site block
+    const block = document.createElement('div');
+    block.style.cssText = 'border:1px solid #e0e0e0;border-radius:8px;padding:12px;margin-bottom:14px';
+
+    // Site header
+    block.innerHTML = `
+      <div style="font-size:13px;font-weight:600;color:#1e3a5f;margin-bottom:10px">🏭 ${site.name}</div>
+      <div class="settings-section">
+        <label>🔗 Google Sheet URL</label>
+        <input type="text" id="sheet_${key}" value="${site.sheetUrl||''}" placeholder="https://docs.google.com/spreadsheets/d/...">
+      </div>
+      <div style="font-size:12px;font-weight:500;color:#555;margin:10px 0 6px">📐 Floors</div>
+      <div id="floors_${key}"></div>
+      <button onclick="addFloor('${key}')" style="margin-top:8px;padding:5px 12px;border:1px dashed #1e5fa5;border-radius:5px;background:#eff6ff;color:#1e5fa5;cursor:pointer;font-size:12px;width:100%">+ เพิ่ม Floor</button>
+    `;
+    c.appendChild(block);
+    renderFloorRows(key);
+  });
+}
+
+function renderFloorRows(siteKey) {
+  const container = document.getElementById('floors_' + siteKey);
+  if (!container) return;
+  container.innerHTML = '';
+  const floors = MACHINES_CONFIG[siteKey].floors;
+  Object.entries(floors).forEach(([f, floorData]) => {
+    const machineCount = floorData.machines.length;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;background:#f9f9f9;padding:6px 8px;border-radius:6px;border:1px solid #eee;flex-wrap:wrap';
+    row.innerHTML = `
+      <div style="font-size:10px;font-weight:600;color:#888;min-width:44px">#${f}</div>
+      <input type="text" id="name_${siteKey}_${f}" value="${floorData.name || 'Floor ' + f}"
+        placeholder="ชื่อ Floor"
+        style="width:110px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <input type="text" id="img_${siteKey}_${f}" value="${floorData.imgUrl||''}"
+        placeholder="Google Drive URL รูป floor"
+        style="flex:1;min-width:120px;padding:5px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px">
+      <div style="font-size:10px;color:#888;white-space:nowrap">${machineCount} เครื่อง</div>
+      <button onclick="confirmDeleteFloor('${siteKey}', ${f})"
+        style="padding:3px 8px;border:1px solid #fca5a5;border-radius:4px;background:#fff;color:#ef4444;cursor:pointer;font-size:11px"
+        title="ลบ Floor ${f}">✕</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function addFloor(siteKey) {
+  const existingFloors = Object.keys(MACHINES_CONFIG[siteKey].floors).map(Number);
+  let next = 1;
+  while (existingFloors.includes(next)) next++;
+  const numInput = prompt(`เพิ่ม Floor ใหม่สำหรับ ${MACHINES_CONFIG[siteKey].name}\nใส่หมายเลข Floor (เช่น ${next}):`);
+  if (numInput === null) return;
+  const num = parseInt(numInput.trim());
+  if (isNaN(num) || num < 1) { alert('หมายเลข Floor ไม่ถูกต้อง'); return; }
+  if (MACHINES_CONFIG[siteKey].floors[num]) { alert(`Floor ${num} มีอยู่แล้ว`); return; }
+  const nameInput = prompt(`ตั้งชื่อ Floor ${num}:`, `Floor ${num}`);
+  if (nameInput === null) return;
+  MACHINES_CONFIG[siteKey].floors[num] = { name: nameInput.trim() || `Floor ${num}`, imgUrl: '', machines: [] };
+  // sort floors
+  const sorted = {};
+  Object.keys(MACHINES_CONFIG[siteKey].floors).map(Number).sort((a,b)=>a-b).forEach(k => {
+    sorted[k] = MACHINES_CONFIG[siteKey].floors[k];
+  });
+  MACHINES_CONFIG[siteKey].floors = sorted;
+  renderFloorRows(siteKey);
+  toast(`เพิ่ม Floor ${num} — "${nameInput}" แล้ว`);
+}
+
+function confirmDeleteFloor(siteKey, floorNum) {
+  const machineCount = MACHINES_CONFIG[siteKey].floors[floorNum]?.machines.length || 0;
+  const msg = machineCount > 0
+    ? `ลบ Floor ${floorNum} ของ ${MACHINES_CONFIG[siteKey].name}?\n⚠ มีเครื่องอยู่ ${machineCount} ตัว จะถูกลบทั้งหมด`
+    : `ลบ Floor ${floorNum} ของ ${MACHINES_CONFIG[siteKey].name}?`;
+  if (!confirm(msg)) return;
+  delete MACHINES_CONFIG[siteKey].floors[floorNum];
+  // if deleted current floor → switch to first available
+  if (siteKey === currentSite && currentFloor === floorNum) {
+    const remaining = Object.keys(MACHINES_CONFIG[siteKey].floors).map(Number);
+    currentFloor = remaining.length > 0 ? remaining[0] : null;
+  }
+  renderFloorRows(siteKey);
+  if (siteKey === currentSite) { buildFloorTabs(); renderFloor(); }
+  toast(`ลบ Floor ${floorNum} แล้ว`);
+}
+
+function saveSettings() {
+  // Save GAS URL
+  const gasInput = document.getElementById('gas_url_input');
+  if (gasInput && gasInput.value.trim()) GAS_URL = gasInput.value.trim();
+
+  Object.keys(MACHINES_CONFIG).forEach(key => {
+    const su = document.getElementById(`sheet_${key}`);
+    if (su) MACHINES_CONFIG[key].sheetUrl = su.value.trim();
+    Object.keys(MACHINES_CONFIG[key].floors).forEach(f => {
+      const nu = document.getElementById(`name_${key}_${f}`);
+      if (nu) MACHINES_CONFIG[key].floors[f].name = nu.value.trim() || `Floor ${f}`;
+      const iu = document.getElementById(`img_${key}_${f}`);
+      if (iu) MACHINES_CONFIG[key].floors[f].imgUrl = iu.value.trim();
+    });
+  });
+  closeSettings();
+  buildFloorTabs();
+  renderFloor();
+  toast('✓ บันทึกการตั้งค่าแล้ว');
+}
+
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('show');
+}
+
+function openSheet() {
+  const url = MACHINES_CONFIG[currentSite].sheetUrl;
+  if (!url) { toast('⚠ ยังไม่ได้ตั้งค่า Sheet URL — กด ⚙ ตั้งค่า URL ก่อน'); return; }
+  window.open(url, '_blank');
+}
+
+// ─── ISSUE MODAL ──────────────────────────────────────
+function openModal(id, type) {
+  selectedMachine = id;
+  document.getElementById('mTitle').textContent = `รายงานปัญหาเครื่อง ${id}`;
+  const badge = document.getElementById('mBadge');
+  badge.className = `badge ${type}`;
+  badge.textContent = {attendance:'Time Attendance',restroom:'Restroom',lunch:'Lunch Time'}[type] || type;
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('fDate').value = now.toISOString().slice(0,16);
+  document.getElementById('fUser').value = '';
+  document.getElementById('fType').value = '';
+  document.getElementById('fDesc').value = '';
+  document.getElementById('fStatus').value = 'open';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function submitForm() {
+  const user = document.getElementById('fUser').value.trim();
+  const date = document.getElementById('fDate').value;
+  const desc = document.getElementById('fDesc').value.trim();
+  const status = document.getElementById('fStatus').value;
+  if (!user || !date || !desc) { toast('⚠ กรุณากรอกข้อมูลที่จำเป็นให้ครบ'); return; }
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  const payload = {
+    site: MACHINES_CONFIG[currentSite].name,
+    machine: selectedMachine,
+    floor: currentFloor,
+    user, date,
+    issueType: document.getElementById('fType').value || '-',
+    description: desc,
+    status,
+    timestamp: new Date().toISOString()
+  };
+
+  // Save locally
+  setIssueStatus(currentSite, selectedMachine, status);
+  setLastReport(currentSite, selectedMachine, user, date);
+
+  const done = () => {
+    closeModal();
+    renderDots();
+    toast(`✓ บันทึกแล้ว — เครื่อง ${selectedMachine}`);
+    btn.disabled = false; btn.textContent = '💾 บันทึก';
+  };
+
+  if (GAS_URL === 'YOUR_APPS_SCRIPT_URL_HERE') { setTimeout(done, 600); return; }
+
+  fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) })
+    .then(done).catch(done);
+}
+
+// ─── EXPORT AS HTML ───────────────────────────────────
+function exportConfig() {
+  try {
+    const configStr = 'let MACHINES_CONFIG = ' + JSON.stringify(MACHINES_CONFIG, null, 2) + ';';
+    // Get full HTML source and replace MACHINES_CONFIG block
+    let src = document.documentElement.outerHTML;
+    src = src.replace(
+      /let MACHINES_CONFIG = \{[\s\S]*?\};(?=\s*\n.*\/\/ ─── STATE)/,
+      configStr
+    );
+    // Replace GAS_URL
+    src = src.replace(
+      /let GAS_URL = '[^']*';/,
+      `let GAS_URL = '${GAS_URL}';`
+    );
+    // Download
+    const blob = new Blob([src], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const now = new Date();
+    const stamp = now.getFullYear() + ('0'+(now.getMonth()+1)).slice(-2) + ('0'+now.getDate()).slice(-2);
+    a.download = `time_etwin_reporter_${stamp}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('✓ ดาวน์โหลดไฟล์ HTML แล้ว — config + GAS URL ฝังครบ');
+  } catch(e) {
+    toast('❌ Export ไม่สำเร็จ: ' + e.message);
+  }
+}
+
+// ─── TOAST ────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// Close overlays on bg click
+['overlay','settingsOverlay'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) { this.classList.remove('show'); }
+  });
+});
+
+// ─── INIT ─────────────────────────────────────────────
+switchSite('navanakorn');
+</script>
+
+
+</body></html>
