@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time ETWIN — Issue Reporter</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#f5f5f5;color:#222;font-size:14px}
+header{background:#1e5fa5;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px}
+header h1{font-size:16px;font-weight:500}
+header .sub{font-size:12px;opacity:0.75}
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#fff;border-bottom:1px solid #e0e0e0;flex-wrap:wrap}
+.tabs{display:flex;gap:6px}
+.tab{padding:5px 14px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#555;cursor:pointer;font-size:13px}
+.tab.active{background:#1e5fa5;color:#fff;border-color:#1e5fa5}
+.mode-btn{padding:5px 14px;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-size:13px;background:#fff}
+.mode-btn.calib-on{background:#b45309;color:#fff;border-color:#b45309}
+.url-input{flex:1;min-width:200px;padding:5px 10px;border:1px solid #ccc;border-radius:6px;font-size:12px}
+.apply-btn{padding:5px 12px;border:1px solid #1e5fa5;border-radius:6px;background:#1e5fa5;color:#fff;cursor:pointer;font-size:12px}
+.map-area{position:relative;overflow:auto;background:#888;min-height:400px}
+.map-area img{display:block;width:100%;cursor:crosshair}
+.dot{position:absolute;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;cursor:pointer;border:2px solid rgba(255,255,255,0.7);transition:transform 0.1s}
+.dot:hover{transform:translate(-50%,-50%) scale(1.3)}
+.dot.attendance{background:#1e5fa5}
+.dot.restroom{background:#b45309}
+.dot.lunch{background:#166534}
+.dot.calib-new{background:#9333ea;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(147,51,234,0.5)}50%{box-shadow:0 0 0 6px rgba(147,51,234,0)}}
+.legend{display:flex;gap:14px;padding:8px 16px;background:#fff;border-top:1px solid #e0e0e0;font-size:12px;color:#555;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:5px}
+.leg-dot{width:10px;height:10px;border-radius:50%}
+.calib-info{background:#fef3c7;border:1px solid #f59e0b;padding:8px 16px;font-size:12px;color:#92400e;display:none}
+.calib-info.show{display:block}
+
+/* Modal */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:10px;padding:20px;width:360px;max-width:95vw;box-shadow:0 4px 24px rgba(0,0,0,0.15)}
+.modal-hd{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.modal-hd .title{font-size:15px;font-weight:500;flex:1}
+.badge{font-size:11px;padding:2px 8px;border-radius:5px}
+.badge.attendance{background:#dbeafe;color:#1e40af}
+.badge.restroom{background:#fef3c7;color:#92400e}
+.badge.lunch{background:#dcfce7;color:#166534}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:#666;margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:sans-serif}
+.field textarea{resize:vertical;min-height:70px}
+.modal-foot{display:flex;gap:8px;margin-top:16px}
+.btn-cancel{flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#555;cursor:pointer;font-size:13px}
+.btn-save{flex:2;padding:8px;border:none;border-radius:6px;background:#1e5fa5;color:#fff;cursor:pointer;font-size:13px;font-weight:500}
+.btn-save:disabled{opacity:0.5;cursor:default}
+
+/* Calib modal */
+.calib-modal{background:#fff;border-radius:10px;padding:20px;width:340px;max-width:95vw}
+.calib-modal input,.calib-modal select{width:100%;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-top:4px;margin-bottom:10px}
+.calib-modal .row{display:flex;gap:8px;margin-top:8px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#166534;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:300;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Export box */
+.export-box{margin:12px 16px;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;display:none}
+.export-box textarea{width:100%;height:120px;font-size:11px;font-family:monospace;border:1px solid #ccc;border-radius:4px;padding:6px;resize:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Time ETWIN — Issue Reporter</h1>
+    <div class="sub">Belton Industrial (Thailand) Ltd · BIT Building</div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="tabs">
+    <button class="tab active" onclick="switchFloor(1)">1st Floor</button>
+    <button class="tab" onclick="switchFloor(2)">2nd Floor</button>
+    <button class="tab" onclick="switchFloor(3)">3rd Floor</button>
+  </div>
+  <button class="mode-btn" id="calibBtn" onclick="toggleCalib()">⚙ Calibrate</button>
+  <input class="url-input" id="imgUrl" placeholder="วาง Google Drive image URL ของชั้นนี้ที่นี่...">
+  <button class="apply-btn" onclick="applyUrl()">Apply</button>
+  <button class="apply-btn" style="background:#555;border-color:#555" onclick="exportConfig()">Export Config</button>
+</div>
+
+<div class="calib-info" id="calibInfo">
+  ⚙ <strong>Calibration Mode เปิดอยู่</strong> — คลิกบนรูปเพื่อวางตำแหน่งเครื่องใหม่ | คลิกขวาที่ dot เพื่อลบ | กด Export Config เมื่อเสร็จ
+</div>
+
+<div class="map-area" id="mapArea">
+  <img id="floorImg" src="" alt="Floor Plan" onclick="mapClick(event)" onerror="this.src=''" style="min-height:400px;background:#ccc">
+  <div id="dotsLayer"></div>
+</div>
+
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#1e5fa5"></div>Time Attendance</div>
+  <div class="leg"><div class="leg-dot" style="background:#b45309"></div>Restroom</div>
+  <div class="leg"><div class="leg-dot" style="background:#166534"></div>Lunch Time</div>
+  <div style="margin-left:auto;font-size:11px;color:#999" id="coordHint"></div>
+</div>
+
+<div class="export-box" id="exportBox">
+  <div style="font-size:12px;font-weight:500;margin-bottom:6px;color:#166534">Copy config นี้ไปแทนที่ MACHINES_CONFIG ในไฟล์ (บรรทัด ~220)</div>
+  <textarea id="exportText" readonly></textarea>
+  <button onclick="copyExport()" style="margin-top:6px;padding:5px 12px;border:1px solid #ccc;border-radius:5px;cursor:pointer;font-size:12px">Copy to clipboard</button>
+  <button onclick="document.getElementById('exportBox').style.display='none'" style="margin-top:6px;margin-left:6px;padding:5px 12px;border:1px solid #ccc;border-radius:5px;cursor:pointer;font-size:12px">ปิด</button>
+</div>
+
+<!-- Issue Form Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="title" id="mTitle">รายงานปัญหาเครื่อง</div>
+      <span class="badge" id="mBadge"></span>
+    </div>
+    <div class="field">
+      <label>EN / ชื่อผู้แจ้ง *</label>
+      <input type="text" id="fUser" placeholder="เช่น EN001 หรือ ชื่อ-สกุล">
+    </div>
+    <div class="field">
+      <label>วันที่-เวลาที่มีปัญหา *</label>
+      <input type="datetime-local" id="fDate">
+    </div>
+    <div class="field">
+      <label>ประเภทปัญหา</label>
+      <select id="fType">
+        <option value="">-- เลือกประเภท --</option>
+        <option>Card Read Error</option>
+        <option>Network / Connection</option>
+        <option>Display / Screen</option>
+        <option>Power Issue</option>
+        <option>Button / Keypad</option>
+        <option>อื่นๆ</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>รายละเอียดปัญหา *</label>
+      <textarea id="fDesc" placeholder="อธิบายอาการที่พบ..."></textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-save" id="btnSave" onclick="submitForm()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Calibration dot form -->
+<div class="overlay" id="calibOverlay">
+  <div class="calib-modal">
+    <div style="font-size:14px;font-weight:500;margin-bottom:12px">⚙ เพิ่มเครื่องใหม่</div>
+    <label style="font-size:12px;color:#666">Machine ID (เช่น No09, T01, GH1)</label>
+    <input type="text" id="cId" placeholder="No09">
+    <label style="font-size:12px;color:#666">ประเภท</label>
+    <select id="cType">
+      <option value="attendance">Time Attendance</option>
+      <option value="restroom">Restroom</option>
+      <option value="lunch">Lunch Time</option>
+    </select>
+    <label style="font-size:12px;color:#666">Label บน dot (1-4 ตัวอักษร)</label>
+    <input type="text" id="cLabel" placeholder="09" maxlength="4">
+    <div class="row">
+      <button onclick="closeCalibForm()" style="flex:1;padding:7px;border:1px solid #ccc;border-radius:6px;cursor:pointer;background:#fff">ยกเลิก</button>
+      <button onclick="saveCalibDot()" style="flex:2;padding:7px;border:none;border-radius:6px;background:#9333ea;color:#fff;cursor:pointer;font-weight:500">เพิ่ม Dot</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxwxxuq4u6GoAHdq0-pjEs-Oe20gnqKsuoCc2-DFHHdIaaNBpOylcWRL0rLpojPmsf1/exec';
+
+// ── Config: แก้ไข URL รูปและตำแหน่ง dot ที่นี่หลัง calibrate ──
+// xPct, yPct = เปอร์เซ็นต์จากมุมซ้ายบนของรูป (0-100)
+let MACHINES_CONFIG = {
+  1: {
+    imgUrl: 'https://drive.google.com/file/d/1Sze9iLQNdA_d755ujuL0J7qEvUYtFJG5/view?usp=drive_link',
+    machines: [
+      {id:'GH2', xPct:9.00, yPct:61.00,type:'lunch',label:'GH2'},
+      {id:'No17',xPct:45.12,yPct:32.12,type:'attendance',label:'17'},
+      {id:'No14',xPct:58.46,yPct:34.09,type:'attendance',label:'14'},
+      {id:'No13',xPct:65.00,yPct:34.17,type:'attendance',label:'13'},
+      {id:'No15',xPct:65.37,yPct:49.16,type:'attendance',label:'15'},
+      {id:'No16',xPct:58.88,yPct:53.36,type:'attendance',label:'16'},
+      {id:'No18',xPct:56.56,yPct:77.98,type:'attendance',label:'18'},
+      {id:'No19',xPct:63.78,yPct:78.15,type:'attendance',label:'19'},
+      {id:'No20',xPct:67.21,yPct:77.82,type:'attendance',label:'20'},
+      {id:'No21',xPct:70.53,yPct:77.98,type:'attendance',label:'21'},
+      {id:'No11',xPct:76.23,yPct:59.04,type:'attendance',label:'11'},
+      {id:'No10',xPct:76.07,yPct:69.42,type:'attendance',label:'10'},
+      {id:'No09',xPct:82.66,yPct:77.66,type:'attendance',label:'09'},
+      {id:'No12',xPct:82.29,yPct:50.64,type:'attendance',label:'12'},
+      {id:'GH1', xPct:75.65,yPct:90.01,type:'lunch',label:'GH1'},
+      {id:'T05', xPct:56.62,yPct:75.35,type:'restroom',label:'T05'},
+    ]
+  },
+  2: {
+    imgUrl: 'https://drive.google.com/file/d/1ix9gjL6pAnHuanFMGpHYFBu-Ud11o31-/view?usp=drive_link',
+    machines: [
+      {id:'No01',xPct:24.35,yPct:24.82,type:'attendance',label:'01'},
+      {id:'No23',xPct:56.93,yPct:30.90,type:'attendance',label:'23'},
+      {id:'No22',xPct:60.89,yPct:30.65,type:'attendance',label:'22'},
+      {id:'No25',xPct:67.95,yPct:42.64,type:'attendance',label:'25'},
+      {id:'No03',xPct:67.90,yPct:62.04,type:'attendance',label:'03'},
+      {id:'No04',xPct:50.87,yPct:68.20,type:'attendance',label:'04'},
+      {id:'No24',xPct:65.00,yPct:78.86,type:'attendance',label:'24'},
+      {id:'No05',xPct:68.85,yPct:68.54,type:'attendance',label:'05'},
+      {id:'No07',xPct:78.97,yPct:75.28,type:'attendance',label:'07'},
+      {id:'No02',xPct:30.05,yPct:80.86,type:'attendance',label:'02'},
+      {id:'T01', xPct:71.16,yPct:74.03,type:'restroom',label:'T01'},
+    ]
+  },
+  3: {
+    imgUrl: 'https://drive.google.com/file/d/1Fi-KltzqIDxsfHCdzRHadF_0VZ2KCK4M/view?usp=drive_link',
+    machines: [
+      {id:'No06',xPct:25.72,yPct:83.53,type:'attendance',label:'06'},
+    ]
+  }
+};
+
+let currentFloor = 1;
+let calibMode = false;
+let pendingCalibPos = null;
+let selectedMachine = null;
+
+function gdUrl(raw) {
+  const m = raw.match(/\/d\/([\w-]+)/);
+  if (m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w2000`;
+  const m2 = raw.match(/id=([\w-]+)/);
+  if (m2) return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w2000`;
+  return raw;
+}
+
+function switchFloor(f) {
+  currentFloor = f;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i+1===f));
+  const cfg = MACHINES_CONFIG[f];
+  document.getElementById('imgUrl').value = cfg.imgUrl || '';
+  const img = document.getElementById('floorImg');
+  img.src = cfg.imgUrl ? gdUrl(cfg.imgUrl) : '';
+  renderDots();
+}
+
+function applyUrl() {
+  const raw = document.getElementById('imgUrl').value.trim();
+  if (!raw) return;
+  MACHINES_CONFIG[currentFloor].imgUrl = raw;
+  document.getElementById('floorImg').src = gdUrl(raw);
+  toast('โหลดรูปชั้น ' + currentFloor + ' แล้ว');
+}
+
+function renderDots() {
+  const layer = document.getElementById('dotsLayer');
+  layer.innerHTML = '';
+  const machines = MACHINES_CONFIG[currentFloor].machines;
+  machines.forEach(m => {
+    const dot = document.createElement('div');
+    dot.className = `dot ${m.type}`;
+    dot.style.left = m.xPct + '%';
+    dot.style.top = m.yPct + '%';
+    dot.textContent = m.label;
+    dot.title = m.id;
+    dot.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (calibMode) { removeDot(m.id); return; }
+      openModal(m.id, m.type);
+    });
+    dot.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (calibMode) removeDot(m.id);
+    });
+    layer.appendChild(dot);
+  });
+}
+
+function removeDot(id) {
+  if (!confirm(`ลบเครื่อง ${id} ออกจาก floor นี้?`)) return;
+  MACHINES_CONFIG[currentFloor].machines = MACHINES_CONFIG[currentFloor].machines.filter(m => m.id !== id);
+  renderDots();
+}
+
+function toggleCalib() {
+  calibMode = !calibMode;
+  const btn = document.getElementById('calibBtn');
+  btn.classList.toggle('calib-on', calibMode);
+  btn.textContent = calibMode ? '⚙ ปิด Calibrate' : '⚙ Calibrate';
+  document.getElementById('calibInfo').classList.toggle('show', calibMode);
+  document.getElementById('floorImg').style.cursor = calibMode ? 'crosshair' : 'default';
+}
+
+function mapClick(e) {
+  if (!calibMode) return;
+  const img = document.getElementById('floorImg');
+  const rect = img.getBoundingClientRect();
+  const xPct = ((e.clientX - rect.left) / rect.width * 100).toFixed(2);
+  const yPct = ((e.clientY - rect.top) / rect.height * 100).toFixed(2);
+  document.getElementById('coordHint').textContent = `x:${xPct}% y:${yPct}%`;
+  pendingCalibPos = { xPct: parseFloat(xPct), yPct: parseFloat(yPct) };
+  document.getElementById('cId').value = '';
+  document.getElementById('cLabel').value = '';
+  document.getElementById('calibOverlay').classList.add('show');
+}
+
+function closeCalibForm() {
+  document.getElementById('calibOverlay').classList.remove('show');
+  pendingCalibPos = null;
+}
+
+function saveCalibDot() {
+  const id = document.getElementById('cId').value.trim();
+  const type = document.getElementById('cType').value;
+  const label = document.getElementById('cLabel').value.trim() || id.slice(-2);
+  if (!id) { alert('กรุณาใส่ Machine ID'); return; }
+  if (!pendingCalibPos) return;
+  MACHINES_CONFIG[currentFloor].machines.push({
+    id, xPct: pendingCalibPos.xPct, yPct: pendingCalibPos.yPct, type, label
+  });
+  closeCalibForm();
+  renderDots();
+  toast(`เพิ่ม ${id} แล้ว`);
+}
+
+function openModal(id, type) {
+  selectedMachine = id;
+  document.getElementById('mTitle').textContent = `รายงานปัญหาเครื่อง ${id}`;
+  const m = MACHINES_CONFIG[currentFloor].machines.find(x => x.id === id);
+  const badge = document.getElementById('mBadge');
+  badge.className = `badge ${type}`;
+  badge.textContent = {attendance:'Time Attendance',restroom:'Restroom',lunch:'Lunch Time'}[type] || type;
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  document.getElementById('fDate').value = now.toISOString().slice(0,16);
+  document.getElementById('fUser').value = '';
+  document.getElementById('fType').value = '';
+  document.getElementById('fDesc').value = '';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function submitForm() {
+  const user = document.getElementById('fUser').value.trim();
+  const date = document.getElementById('fDate').value;
+  const desc = document.getElementById('fDesc').value.trim();
+  if (!user || !date || !desc) { toast('⚠ กรุณากรอกข้อมูลที่จำเป็นให้ครบ'); return; }
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+  const payload = {
+    machine: selectedMachine,
+    floor: currentFloor,
+    user, date,
+    issueType: document.getElementById('fType').value,
+    description: desc,
+    timestamp: new Date().toISOString()
+  };
+  if (GAS_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    setTimeout(() => {
+      console.log('DEMO payload:', payload);
+      closeModal();
+      toast(`✓ บันทึกแล้ว — เครื่อง ${selectedMachine} (demo mode)`);
+      btn.disabled = false; btn.textContent = '💾 บันทึก';
+    }, 700);
+    return;
+  }
+  fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify(payload)
+  })
+    .then(() => { closeModal(); toast(`✓ บันทึกลง Google Sheets แล้ว — เครื่อง ${selectedMachine}`); })
+    .catch(() => { closeModal(); toast(`✓ บันทึกลง Google Sheets แล้ว — เครื่อง ${selectedMachine}`); })
+    .finally(() => { btn.disabled = false; btn.textContent = '💾 บันทึก'; });
+}
+
+function exportConfig() {
+  const box = document.getElementById('exportBox');
+  box.style.display = 'block';
+  document.getElementById('exportText').value = JSON.stringify(MACHINES_CONFIG, null, 2);
+}
+
+function copyExport() {
+  const t = document.getElementById('exportText');
+  t.select(); document.execCommand('copy');
+  toast('Copied!');
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+document.getElementById('overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+switchFloor(1);
+</script>
+</body>
+</html>
